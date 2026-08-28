@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MusicSourceType {
+  MP3
+  YOUTUBE
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  favorites Favorite[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  music       Music[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Music {
+  id             String           @id @default(cuid())
+  title          String
+  artist         String?
+  description    String?
+  sourceType     MusicSourceType
+  fileUrl        String?
+  youtubeUrl     String?
+  youtubeVideoId String?
+  coverUrl       String?
+  duration       Int?
+  tags           String[]         @default([])
+  categoryId     String?
+  category       Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  playlistItems  PlaylistMusic[]
+  favorites      Favorite[]
+  playCount      Int              @default(0)
+  lastPlayedAt   DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([title])
+  @@index([artist])
+  @@index([categoryId])
+  @@index([sourceType])
+}
+
+model Playlist {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  items       PlaylistMusic[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model PlaylistMusic {
+  id         String   @id @default(cuid())
+  playlistId String
+  musicId    String
+  position   Int
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  music      Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([playlistId, musicId])
+  @@index([playlistId, position])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  musicId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  music     Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, musicId])
+}

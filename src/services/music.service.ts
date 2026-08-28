@@ -27,14 +27,14 @@ export async function listMusic(params: {
   return db.music.findMany({
     where,
     orderBy,
-    include: { category: true, favorites: true }
+    include: { category: true, favorites: true, checkpoints: { orderBy: { startSecond: "asc" } } }
   });
 }
 
 export async function getMusic(id: string) {
   return db.music.findUnique({
     where: { id },
-    include: { category: true, playlistItems: { include: { playlist: true } }, favorites: true }
+    include: { category: true, playlistItems: { include: { playlist: true } }, favorites: true, checkpoints: { orderBy: { startSecond: "asc" } } }
   });
 }
 
@@ -49,7 +49,7 @@ export async function createMusic(data: Prisma.MusicUncheckedCreateInput) {
       youtubeVideoId: youtubeVideoId ?? data.youtubeVideoId,
       coverUrl: data.coverUrl || youtubeThumbnail(youtubeVideoId)
     },
-    include: { category: true, favorites: true }
+    include: { category: true, favorites: true, checkpoints: { orderBy: { startSecond: "asc" } } }
   });
 }
 
@@ -63,12 +63,20 @@ export async function updateMusic(id: string, data: Prisma.MusicUncheckedUpdateI
       ...data,
       youtubeVideoId
     },
-    include: { category: true, favorites: true }
+    include: { category: true, favorites: true, checkpoints: { orderBy: { startSecond: "asc" } } }
   });
 }
 
 export async function deleteMusic(id: string) {
   return db.music.delete({ where: { id } });
+}
+
+export async function createMusicCheckpoint(musicId: string, data: { name: string; startSecond: number; endSecond?: number | null }) {
+  return db.musicCheckpoint.create({ data: { ...data, musicId } });
+}
+
+export async function deleteMusicCheckpoint(id: string, musicId: string) {
+  return db.musicCheckpoint.deleteMany({ where: { id, musicId } });
 }
 
 export async function librarySummary() {

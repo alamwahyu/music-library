@@ -1,6 +1,6 @@
-# Web Music Library
+# AWH Digital Music Library
 
-Browser-based music library built with Next.js, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Zustand, and Lucide icons.
+Browser-based music library for AWH Digital, built with Next.js, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Zustand, and Lucide icons.
 
 ## Features
 

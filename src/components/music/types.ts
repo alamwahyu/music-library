@@ -18,12 +18,23 @@ export type Music = {
   youtubeVideoId?: string | null;
   coverUrl?: string | null;
   duration?: number | null;
+  playbackStart?: number | null;
+  playbackEnd?: number | null;
   tags: string[];
   categoryId?: string | null;
   category?: Category | null;
+  checkpoints: MusicCheckpoint[];
   playCount: number;
   lastPlayedAt?: string | null;
   createdAt: string;
+};
+
+export type MusicCheckpoint = {
+  id: string;
+  musicId: string;
+  name: string;
+  startSecond: number;
+  endSecond?: number | null;
 };
 
 export type Playlist = {

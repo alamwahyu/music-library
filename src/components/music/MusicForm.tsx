@@ -27,6 +27,8 @@ export function MusicForm({ open, categories, music, onClose, onSaved }: Props) 
     fileUrl: music?.fileUrl ?? "",
     coverUrl: music?.coverUrl ?? "",
     duration: music?.duration?.toString() ?? "",
+    playbackStart: music?.playbackStart?.toString() ?? "",
+    playbackEnd: music?.playbackEnd?.toString() ?? "",
     description: music?.description ?? "",
     tags: music?.tags?.join(", ") ?? ""
   }), [music]);
@@ -68,6 +70,8 @@ export function MusicForm({ open, categories, music, onClose, onSaved }: Props) 
         fileUrl: sourceType === "MP3" ? fileUrl : null,
         coverUrl: String(form.get("coverUrl") || "") || null,
         duration: String(form.get("duration") || "") || null,
+        playbackStart: String(form.get("playbackStart") || "") || null,
+        playbackEnd: String(form.get("playbackEnd") || "") || null,
         description: String(form.get("description") || "") || null,
         tags: String(form.get("tags") || "")
       };
@@ -119,6 +123,10 @@ export function MusicForm({ open, categories, music, onClose, onSaved }: Props) 
 
           <label className="grid gap-1 text-sm font-medium">Cover Image URL<input name="coverUrl" defaultValue={initial.coverUrl ?? ""} className="rounded-md border border-line bg-white px-3 py-2" /></label>
           <label className="grid gap-1 text-sm font-medium">Duration in seconds<input name="duration" type="number" min="1" defaultValue={initial.duration} className="rounded-md border border-line bg-white px-3 py-2" /></label>
+          <div className="grid gap-3 rounded-lg border border-line bg-white p-3 sm:grid-cols-2">
+            <label className="grid gap-1 text-sm font-medium">Start at second<input name="playbackStart" type="number" min="0" defaultValue={initial.playbackStart} placeholder="0" className="rounded-md border border-line bg-paper px-3 py-2" /></label>
+            <label className="grid gap-1 text-sm font-medium">Stop at second<input name="playbackEnd" type="number" min="1" defaultValue={initial.playbackEnd} placeholder="Optional" className="rounded-md border border-line bg-paper px-3 py-2" /></label>
+          </div>
           <label className="grid gap-1 text-sm font-medium">Description<textarea name="description" defaultValue={initial.description ?? ""} rows={4} className="rounded-md border border-line bg-white px-3 py-2" /></label>
           <label className="grid gap-1 text-sm font-medium">Tags<input name="tags" defaultValue={initial.tags} placeholder="romantic, dinner, entrance" className="rounded-md border border-line bg-white px-3 py-2" /></label>
         </div>

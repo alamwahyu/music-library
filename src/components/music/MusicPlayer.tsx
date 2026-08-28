@@ -40,10 +40,12 @@ export function MusicPlayer() {
 
   useEffect(() => {
     if (!currentMusic || !controllerRef.current) return;
-    if (lastMusicId.current === currentMusic.id) return;
-    lastMusicId.current = currentMusic.id;
+    const loadKey = `${currentMusic.id}:${currentMusic.playbackStart ?? 0}:${currentMusic.playbackEnd ?? ""}:${currentMusic.playbackLabel ?? ""}`;
+    if (lastMusicId.current === loadKey) return;
+    lastMusicId.current = loadKey;
     controllerRef.current.load(currentMusic, nextMusic).then(() => {
       controllerRef.current?.setVolume(volume);
+      controllerRef.current?.seek(currentMusic.playbackStart ?? 0);
       if (isPlaying) void controllerRef.current?.play();
     });
   }, [currentMusic, isPlaying, nextMusic, volume]);
@@ -61,12 +63,28 @@ export function MusicPlayer() {
   useEffect(() => {
     const timer = window.setInterval(() => {
       const snapshot = controllerRef.current?.snapshot();
-      if (snapshot) setProgress(snapshot.currentTime, snapshot.duration || duration);
-    }, 500);
+      if (!snapshot) return;
+      const effectiveDuration = snapshot.duration || duration;
+      const endSecond = currentMusic?.playbackEnd;
+      if (isPlaying && endSecond && snapshot.currentTime >= endSecond) {
+        if (repeatMode === "one") {
+          controllerRef.current?.seek(currentMusic?.playbackStart ?? 0);
+        } else {
+          nextMusic();
+        }
+        return;
+      }
+      setProgress(snapshot.currentTime, effectiveDuration);
+    }, 350);
     return () => window.clearInterval(timer);
-  }, [duration, setProgress]);
+  }, [currentMusic?.playbackEnd, currentMusic?.playbackStart, duration, isPlaying, nextMusic, repeatMode, setProgress]);
 
-  const progress = useMemo(() => (duration ? Math.min(100, (currentTime / duration) * 100) : 0), [currentTime, duration]);
+  const rangeStart = currentMusic?.playbackStart ?? 0;
+  const rangeEnd = currentMusic?.playbackEnd ?? duration;
+  const progress = useMemo(() => {
+    const total = Math.max(0, rangeEnd - rangeStart);
+    return total ? Math.min(100, ((currentTime - rangeStart) / total) * 100) : 0;
+  }, [currentTime, rangeEnd, rangeStart]);
 
   if (!currentMusic) {
     return (
@@ -88,7 +106,7 @@ export function MusicPlayer() {
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{currentMusic.title}</p>
-            <p className="truncate text-xs text-zinc-500">{currentMusic.artist || "Unknown artist"}</p>
+            <p className="truncate text-xs text-zinc-500">{currentMusic.playbackLabel || currentMusic.artist || "Unknown artist"}</p>
           </div>
         </div>
 
@@ -121,11 +139,11 @@ export function MusicPlayer() {
               className="range w-full"
               type="range"
               min={0}
-              max={duration || 0}
+              max={rangeEnd || duration || 0}
               value={currentTime}
-              onChange={(event) => controllerRef.current?.seek(Number(event.target.value))}
+              onChange={(event) => controllerRef.current?.seek(Math.max(rangeStart, Number(event.target.value)))}
             />
-            <span>{formatTime(duration)}</span>
+            <span>{formatTime(rangeEnd || duration)}</span>
           </div>
         </div>
 

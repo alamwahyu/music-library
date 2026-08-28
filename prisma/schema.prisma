@@ -43,11 +43,14 @@ model Music {
   youtubeVideoId String?
   coverUrl       String?
   duration       Int?
+  playbackStart  Int?
+  playbackEnd    Int?
   tags           String[]         @default([])
   categoryId     String?
   category       Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   playlistItems  PlaylistMusic[]
   favorites      Favorite[]
+  checkpoints    MusicCheckpoint[]
   playCount      Int              @default(0)
   lastPlayedAt   DateTime?
   createdAt      DateTime         @default(now())
@@ -57,6 +60,19 @@ model Music {
   @@index([artist])
   @@index([categoryId])
   @@index([sourceType])
+}
+
+model MusicCheckpoint {
+  id          String   @id @default(cuid())
+  musicId     String
+  name        String
+  startSecond Int
+  endSecond   Int?
+  music       Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([musicId])
 }
 
 model Playlist {

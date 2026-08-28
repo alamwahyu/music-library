@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteMusic, getMusic, updateMusic } from "@/services/music.service";
-import { musicPayloadSchema, parseTags } from "@/lib/validation";
+import { musicUpdatePayloadSchema, parseTags } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -15,7 +15,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const payload = musicPayloadSchema.partial().parse({ ...body, tags: parseTags(body.tags) });
+    const payload = musicUpdatePayloadSchema.parse({ ...body, tags: parseTags(body.tags) });
     const music = await updateMusic(id, payload);
     return NextResponse.json(music);
   } catch (error) {

@@ -11,6 +11,9 @@ export type PlayerMusic = {
   youtubeVideoId?: string | null;
   coverUrl?: string | null;
   duration?: number | null;
+  playbackStart?: number | null;
+  playbackEnd?: number | null;
+  playbackLabel?: string | null;
 };
 
 export class PlayerController {

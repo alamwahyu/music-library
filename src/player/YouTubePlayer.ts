@@ -1,6 +1,7 @@
 import type { AudioPlayerAdapter } from "./AudioPlayerAdapter";
 
 type YouTubePlayerApi = {
+  cueVideoById(id: string): void;
   loadVideoById(id: string): void;
   playVideo(): void;
   pauseVideo(): void;
@@ -14,7 +15,7 @@ type YouTubePlayerApi = {
 declare global {
   interface Window {
     YT?: {
-      Player: new (element: HTMLElement, options: unknown) => YouTubePlayerApi;
+      Player: new (elementId: string, options: unknown) => YouTubePlayerApi;
     };
     onYouTubeIframeAPIReady?: () => void;
   }
@@ -38,10 +39,14 @@ export class YouTubeAudioAdapter implements AudioPlayerAdapter {
   private player?: YouTubePlayerApi;
   private container: HTMLDivElement;
   private onEnded?: () => void;
+  private ready?: Promise<void>;
+  private readyResolve?: () => void;
+  private volume = 80;
 
   constructor(onEnded?: () => void) {
     this.onEnded = onEnded;
     this.container = document.createElement("div");
+    this.container.id = `youtube-player-${crypto.randomUUID()}`;
     this.container.style.cssText = "position:fixed;left:-9999px;bottom:0;width:1px;height:1px;";
     document.body.appendChild(this.container);
   }
@@ -50,47 +55,83 @@ export class YouTubeAudioAdapter implements AudioPlayerAdapter {
     await loadYouTubeApi();
     const videoId = source;
     if (!this.player && window.YT?.Player) {
-      this.player = new window.YT.Player(this.container, {
+      this.ready = new Promise((resolve) => {
+        this.readyResolve = resolve;
+      });
+      this.player = new window.YT.Player(this.container.id, {
         height: "1",
         width: "1",
         videoId,
+        host: "https://www.youtube.com",
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          enablejsapi: 1,
+          modestbranding: 1,
+          origin: window.location.origin,
+          playsinline: 1,
+          rel: 0
+        },
         events: {
+          onReady: () => {
+            this.safeCall("setVolume", this.volume);
+            this.readyResolve?.();
+          },
           onStateChange: (event: { data: number }) => {
             if (event.data === 0) this.onEnded?.();
           }
         }
       });
+      await this.ready;
       return;
     }
-    this.player?.loadVideoById(videoId);
+    await this.ready;
+    this.safeCall("loadVideoById", videoId);
   }
 
   async play() {
-    this.player?.playVideo();
+    await this.ready;
+    this.safeCall("playVideo");
   }
 
   pause() {
-    this.player?.pauseVideo();
+    this.safeCall("pauseVideo");
   }
 
   seek(seconds: number) {
-    this.player?.seekTo(seconds, true);
+    this.safeCall("seekTo", seconds, true);
   }
 
   setVolume(volume: number) {
-    this.player?.setVolume(Math.round(volume * 100));
+    this.volume = Math.round(volume * 100);
+    this.safeCall("setVolume", this.volume);
   }
 
   getCurrentTime() {
-    return this.player?.getCurrentTime() ?? 0;
+    return this.safeRead("getCurrentTime");
   }
 
   getDuration() {
-    return this.player?.getDuration() ?? 0;
+    return this.safeRead("getDuration");
   }
 
   destroy() {
-    this.player?.destroy();
+    this.safeCall("destroy");
     this.container.remove();
+  }
+
+  private safeCall(method: keyof YouTubePlayerApi, ...args: unknown[]) {
+    const candidate = this.player?.[method];
+    if (typeof candidate === "function") {
+      (candidate as (...methodArgs: unknown[]) => void).apply(this.player, args);
+    }
+  }
+
+  private safeRead(method: "getCurrentTime" | "getDuration") {
+    const candidate = this.player?.[method];
+    if (typeof candidate !== "function") return 0;
+    const value = candidate.apply(this.player);
+    return Number.isFinite(value) ? value : 0;
   }
 }

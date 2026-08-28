@@ -17,8 +17,8 @@ export function CategorySidebar({ categories, activeCategory, favoritesOnly, onC
       <div className="flex items-center gap-2">
         <Music2 className="text-wine" size={24} />
         <div>
-          <p className="text-sm text-zinc-500">Music Library</p>
-          <h1 className="text-lg font-semibold text-ink">Collection</h1>
+          <p className="text-sm text-zinc-500">AWH Digital</p>
+          <h1 className="text-lg font-semibold text-ink">Music Library</h1>
         </div>
       </div>
       <nav className="mt-8 grid gap-1">

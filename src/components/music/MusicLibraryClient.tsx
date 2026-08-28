@@ -11,7 +11,7 @@ import { MusicDetail } from "./MusicDetail";
 import { MusicForm } from "./MusicForm";
 import { MusicPlayer } from "./MusicPlayer";
 import { PlaylistManager } from "./PlaylistManager";
-import type { Category, Music, Playlist, Summary } from "./types";
+import type { Category, Music, MusicCheckpoint, Playlist, Summary } from "./types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const defaultSummary: Summary = { total: 0, mp3: 0, youtube: 0, categories: 0 };
@@ -100,6 +100,24 @@ export function MusicLibraryClient() {
     player.playMusic(song, queue);
   }
 
+  function playCheckpoint(song: Music, checkpoint: MusicCheckpoint) {
+    player.playMusic(
+      {
+        ...song,
+        playbackStart: checkpoint.startSecond,
+        playbackEnd: checkpoint.endSecond,
+        playbackLabel: checkpoint.name
+      },
+      visibleMusic.filter((item) => item.id !== song.id)
+    );
+  }
+
+  async function refreshDetail(musicId: string) {
+    await fetchAll();
+    const response = await fetch(apiPath(`/api/music/${musicId}`));
+    if (response.ok) setDetailMusic(await response.json());
+  }
+
   async function confirmDelete() {
     if (!deleteTarget) return;
     await fetch(apiPath(`/api/music/${deleteTarget.id}`), { method: "DELETE" });
@@ -122,8 +140,8 @@ export function MusicLibraryClient() {
         <main className="min-w-0 flex-1 p-4 lg:p-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold tracking-normal text-ink lg:text-3xl">Music Library</h1>
-              <p className="mt-1 text-sm text-zinc-500">Store, organize, search, and play your music from the browser.</p>
+              <h1 className="text-2xl font-semibold tracking-normal text-ink lg:text-3xl">AWH Digital Music Library</h1>
+              <p className="mt-1 text-sm text-zinc-500">Store, organize, search, and play curated music collections from the browser.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => { setEditingMusic(null); setFormOpen(true); }} className="inline-flex items-center gap-2 rounded-md bg-wine px-4 py-2 text-sm font-semibold text-white"><Plus size={17} /> Add Music</button>
@@ -205,7 +223,16 @@ export function MusicLibraryClient() {
 
       <MusicForm open={formOpen} categories={categories} music={editingMusic} onClose={() => setFormOpen(false)} onSaved={fetchAll} />
       <CategoryManager open={categoryOpen} categories={categories} onClose={() => setCategoryOpen(false)} onChanged={fetchAll} />
-      <MusicDetail music={detailMusic} onClose={() => setDetailMusic(null)} onPlay={playSong} onQueue={player.addToQueue} onEdit={(item) => { setEditingMusic(item); setFormOpen(true); }} onDelete={setDeleteTarget} />
+      <MusicDetail
+        music={detailMusic}
+        onClose={() => setDetailMusic(null)}
+        onPlay={playSong}
+        onPlayCheckpoint={playCheckpoint}
+        onQueue={player.addToQueue}
+        onEdit={(item) => { setEditingMusic(item); setFormOpen(true); }}
+        onDelete={setDeleteTarget}
+        onChanged={refreshDetail}
+      />
       <ConfirmDialog open={Boolean(deleteTarget)} title={`Delete "${deleteTarget?.title ?? ""}"?`} description="This action cannot be undone." onCancel={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
       <MusicPlayer />
     </div>

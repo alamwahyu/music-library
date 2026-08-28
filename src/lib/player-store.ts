@@ -44,7 +44,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       queue,
       history: state.currentMusic ? [state.currentMusic, ...state.history].slice(0, 30) : state.history,
       isPlaying: true,
-      currentTime: 0,
+      currentTime: music.playbackStart ?? 0,
       duration: music.duration ?? 0
     })),
   pauseMusic: () => set({ isPlaying: false }),
@@ -60,7 +60,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (!next) {
       if (state.repeatMode === "all" && state.history.length) {
         const replay = [...state.history].reverse();
-        set({ currentMusic: replay[0], queue: replay.slice(1), history: [], isPlaying: true, currentTime: 0 });
+        set({ currentMusic: replay[0], queue: replay.slice(1), history: [], isPlaying: true, currentTime: replay[0]?.playbackStart ?? 0 });
       } else {
         set({ isPlaying: false });
       }
@@ -71,7 +71,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       queue: state.queue.filter((_, index) => index !== nextIndex),
       history: state.currentMusic ? [state.currentMusic, ...state.history].slice(0, 30) : state.history,
       isPlaying: true,
-      currentTime: 0,
+      currentTime: next.playbackStart ?? 0,
       duration: next.duration ?? 0
     });
   },
@@ -83,7 +83,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       queue: state.currentMusic ? [state.currentMusic, ...state.queue] : state.queue,
       history: rest,
       isPlaying: true,
-      currentTime: 0
+      currentTime: previous.playbackStart ?? 0
     }));
   },
   addToQueue: (music) => set((state) => ({ queue: [...state.queue, music] })),

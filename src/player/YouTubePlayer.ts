@@ -23,7 +23,7 @@ declare global {
 
 let youtubeReady: Promise<void> | null = null;
 
-function loadYouTubeApi() {
+export function loadYouTubeApi() {
   if (youtubeReady) return youtubeReady;
   youtubeReady = new Promise((resolve) => {
     if (window.YT?.Player) return resolve();
@@ -40,12 +40,14 @@ export class YouTubeAudioAdapter implements AudioPlayerAdapter {
   private container: HTMLDivElement;
   private ownsContainer = true;
   private onEnded?: () => void;
+  private onBlocked?: () => void;
   private ready?: Promise<void>;
   private readyResolve?: () => void;
   private volume = 80;
 
-  constructor(onEnded?: () => void, mountElement?: HTMLDivElement | null) {
+  constructor(onEnded?: () => void, mountElement?: HTMLDivElement | null, onBlocked?: () => void) {
     this.onEnded = onEnded;
+    this.onBlocked = onBlocked;
     this.container = mountElement ?? document.createElement("div");
     this.container.id = `youtube-player-${crypto.randomUUID()}`;
     if (mountElement) {
@@ -86,7 +88,8 @@ export class YouTubeAudioAdapter implements AudioPlayerAdapter {
           },
           onStateChange: (event: { data: number }) => {
             if (event.data === 0) this.onEnded?.();
-          }
+          },
+          onAutoplayBlocked: () => this.onBlocked?.()
         }
       });
       await this.ready;

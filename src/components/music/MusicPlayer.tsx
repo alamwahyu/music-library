@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { FastForward, Pause, Play, Repeat, Rewind, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { usePlayerStore } from "@/lib/player-store";
 import { PlayerController } from "@/player/PlayerController";
+import { loadYouTubeApi } from "@/player/YouTubePlayer";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds <= 0) return "0:00";
@@ -16,6 +17,7 @@ export function MusicPlayer() {
   const controllerRef = useRef<PlayerController | null>(null);
   const lastMusicId = useRef<string | null>(null);
   const youtubeHostRef = useRef<HTMLDivElement | null>(null);
+  const playAttemptRef = useRef<number | null>(null);
   const {
     currentMusic,
     isPlaying,
@@ -36,6 +38,7 @@ export function MusicPlayer() {
 
   useEffect(() => {
     controllerRef.current = new PlayerController();
+    void loadYouTubeApi();
     return () => controllerRef.current?.destroy();
   }, []);
 
@@ -44,12 +47,25 @@ export function MusicPlayer() {
     const loadKey = `${currentMusic.id}:${currentMusic.playbackStart ?? 0}:${currentMusic.playbackEnd ?? ""}:${currentMusic.playbackLabel ?? ""}`;
     if (lastMusicId.current === loadKey) return;
     lastMusicId.current = loadKey;
-    controllerRef.current.load(currentMusic, nextMusic, youtubeHostRef.current).then(() => {
+    controllerRef.current.load(currentMusic, nextMusic, youtubeHostRef.current, pauseMusic).then(() => {
       controllerRef.current?.setVolume(volume);
       controllerRef.current?.seek(currentMusic.playbackStart ?? 0);
-      if (isPlaying) void controllerRef.current?.play();
+      if (isPlaying) {
+        void controllerRef.current?.play();
+        if (currentMusic.sourceType === "YOUTUBE") {
+          if (playAttemptRef.current) window.clearTimeout(playAttemptRef.current);
+          const expectedStart = currentMusic.playbackStart ?? 0;
+          playAttemptRef.current = window.setTimeout(() => {
+            const snapshot = controllerRef.current?.snapshot();
+            if (!snapshot) return;
+            if (snapshot.currentTime <= expectedStart + 0.25) {
+              pauseMusic();
+            }
+          }, 1500);
+        }
+      }
     });
-  }, [currentMusic, isPlaying, nextMusic, volume]);
+  }, [currentMusic, isPlaying, nextMusic, pauseMusic, volume]);
 
   useEffect(() => {
     if (!controllerRef.current || !currentMusic) return;

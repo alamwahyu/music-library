@@ -19,9 +19,9 @@ export type PlayerMusic = {
 export class PlayerController {
   private adapter?: AudioPlayerAdapter;
 
-  async load(music: PlayerMusic, onEnded: () => void, youtubeMountElement?: HTMLDivElement | null) {
+  async load(music: PlayerMusic, onEnded: () => void, youtubeMountElement?: HTMLDivElement | null, onBlocked?: () => void) {
     this.adapter?.destroy();
-    this.adapter = music.sourceType === "MP3" ? new HTML5AudioAdapter(onEnded) : new YouTubeAudioAdapter(onEnded, youtubeMountElement);
+    this.adapter = music.sourceType === "MP3" ? new HTML5AudioAdapter(onEnded) : new YouTubeAudioAdapter(onEnded, youtubeMountElement, onBlocked);
     const source = music.sourceType === "MP3" ? music.fileUrl : music.youtubeVideoId;
     if (!source) throw new Error("Music source is missing.");
     await this.adapter.load(source);

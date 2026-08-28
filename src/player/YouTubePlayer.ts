@@ -38,17 +38,23 @@ function loadYouTubeApi() {
 export class YouTubeAudioAdapter implements AudioPlayerAdapter {
   private player?: YouTubePlayerApi;
   private container: HTMLDivElement;
+  private ownsContainer = true;
   private onEnded?: () => void;
   private ready?: Promise<void>;
   private readyResolve?: () => void;
   private volume = 80;
 
-  constructor(onEnded?: () => void) {
+  constructor(onEnded?: () => void, mountElement?: HTMLDivElement | null) {
     this.onEnded = onEnded;
-    this.container = document.createElement("div");
+    this.container = mountElement ?? document.createElement("div");
     this.container.id = `youtube-player-${crypto.randomUUID()}`;
-    this.container.style.cssText = "position:fixed;left:-9999px;bottom:0;width:1px;height:1px;";
-    document.body.appendChild(this.container);
+    if (mountElement) {
+      this.ownsContainer = false;
+      this.container.innerHTML = "";
+    } else {
+      this.container.style.cssText = "position:fixed;left:-9999px;bottom:0;width:1px;height:1px;";
+      document.body.appendChild(this.container);
+    }
   }
 
   async load(source: string) {
@@ -59,14 +65,14 @@ export class YouTubeAudioAdapter implements AudioPlayerAdapter {
         this.readyResolve = resolve;
       });
       this.player = new window.YT.Player(this.container.id, {
-        height: "1",
-        width: "1",
+        height: "90",
+        width: "160",
         videoId,
         host: "https://www.youtube.com",
         playerVars: {
           autoplay: 0,
-          controls: 0,
-          disablekb: 1,
+          controls: 1,
+          disablekb: 0,
           enablejsapi: 1,
           modestbranding: 1,
           origin: window.location.origin,
@@ -118,7 +124,8 @@ export class YouTubeAudioAdapter implements AudioPlayerAdapter {
 
   destroy() {
     this.safeCall("destroy");
-    this.container.remove();
+    if (this.ownsContainer) this.container.remove();
+    else this.container.innerHTML = "";
   }
 
   private safeCall(method: keyof YouTubePlayerApi, ...args: unknown[]) {

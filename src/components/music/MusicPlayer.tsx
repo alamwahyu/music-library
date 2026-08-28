@@ -15,6 +15,7 @@ function formatTime(seconds: number) {
 export function MusicPlayer() {
   const controllerRef = useRef<PlayerController | null>(null);
   const lastMusicId = useRef<string | null>(null);
+  const youtubeHostRef = useRef<HTMLDivElement | null>(null);
   const {
     currentMusic,
     isPlaying,
@@ -43,7 +44,7 @@ export function MusicPlayer() {
     const loadKey = `${currentMusic.id}:${currentMusic.playbackStart ?? 0}:${currentMusic.playbackEnd ?? ""}:${currentMusic.playbackLabel ?? ""}`;
     if (lastMusicId.current === loadKey) return;
     lastMusicId.current = loadKey;
-    controllerRef.current.load(currentMusic, nextMusic).then(() => {
+    controllerRef.current.load(currentMusic, nextMusic, youtubeHostRef.current).then(() => {
       controllerRef.current?.setVolume(volume);
       controllerRef.current?.seek(currentMusic.playbackStart ?? 0);
       if (isPlaying) void controllerRef.current?.play();
@@ -97,12 +98,15 @@ export function MusicPlayer() {
     );
   }
 
+  const isYouTube = currentMusic.sourceType === "YOUTUBE";
+
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-3 py-3 backdrop-blur lg:px-6">
       <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-3 lg:grid-cols-[280px_1fr_260px]">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-zinc-200">
-            {currentMusic.coverUrl ? <img src={currentMusic.coverUrl} alt="" className="h-full w-full object-cover" /> : null}
+          <div className={`shrink-0 overflow-hidden rounded-md bg-zinc-200 ${isYouTube ? "h-16 w-28" : "h-12 w-12"}`}>
+            <div ref={youtubeHostRef} className={isYouTube ? "h-full w-full [&_iframe]:h-full [&_iframe]:w-full" : "hidden"} />
+            {!isYouTube && currentMusic.coverUrl ? <img src={currentMusic.coverUrl} alt="" className="h-full w-full object-cover" /> : null}
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{currentMusic.title}</p>

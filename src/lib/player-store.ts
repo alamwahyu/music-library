@@ -22,6 +22,8 @@ type PlayerState = {
   previousMusic: () => void;
   addToQueue: (music: PlayerMusic) => void;
   playNext: (music: PlayerMusic) => void;
+  removeFromQueue: (index: number) => void;
+  clearQueue: () => void;
   setVolume: (volume: number) => void;
   setProgress: (currentTime: number, duration: number) => void;
   toggleShuffle: () => void;
@@ -51,10 +53,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   resumeMusic: () => set({ isPlaying: true }),
   nextMusic: () => {
     const state = get();
-    if (state.repeatMode === "one" && state.currentMusic) {
-      set({ currentTime: 0, isPlaying: true });
-      return;
-    }
     const nextIndex = state.shuffle && state.queue.length > 1 ? Math.floor(Math.random() * state.queue.length) : 0;
     const next = state.queue[nextIndex];
     if (!next) {
@@ -88,6 +86,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
   addToQueue: (music) => set((state) => ({ queue: [...state.queue, music] })),
   playNext: (music) => set((state) => ({ queue: [music, ...state.queue] })),
+  removeFromQueue: (index) => set((state) => ({ queue: state.queue.filter((_, itemIndex) => itemIndex !== index) })),
+  clearQueue: () => set({ queue: [] }),
   setVolume: (volume) => set({ volume }),
   setProgress: (currentTime, duration) => set({ currentTime, duration }),
   toggleShuffle: () => set((state) => ({ shuffle: !state.shuffle })),

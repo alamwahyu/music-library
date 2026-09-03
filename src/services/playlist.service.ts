@@ -10,7 +10,7 @@ export async function listPlaylists() {
 export async function getPlaylist(id: string) {
   return db.playlist.findUnique({
     where: { id },
-    include: { items: { orderBy: { position: "asc" }, include: { music: { include: { category: true } } } } }
+    include: { items: { orderBy: { position: "asc" }, include: { music: { include: { category: true, checkpoints: { orderBy: { startSecond: "asc" } } } } } } }
   });
 }
 
@@ -37,4 +37,15 @@ export async function addMusicToPlaylist(playlistId: string, musicId: string, po
 
 export async function removeMusicFromPlaylist(playlistId: string, musicId: string) {
   return db.playlistMusic.delete({ where: { playlistId_musicId: { playlistId, musicId } } });
+}
+
+export async function reorderPlaylistMusic(playlistId: string, orderedMusicIds: string[]) {
+  return db.$transaction(
+    orderedMusicIds.map((musicId, position) =>
+      db.playlistMusic.update({
+        where: { playlistId_musicId: { playlistId, musicId } },
+        data: { position }
+      })
+    )
+  );
 }

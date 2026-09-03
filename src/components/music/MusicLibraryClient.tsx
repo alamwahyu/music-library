@@ -112,6 +112,12 @@ export function MusicLibraryClient() {
     );
   }
 
+  function playPlaylist(songs: Music[]) {
+    const [first, ...rest] = songs;
+    if (!first) return;
+    player.playMusic(first, rest);
+  }
+
   async function refreshDetail(musicId: string) {
     await fetchAll();
     const response = await fetch(apiPath(`/api/music/${musicId}`));
@@ -218,7 +224,7 @@ export function MusicLibraryClient() {
           </section>
         </main>
 
-        <PlaylistManager playlists={playlists} music={music} onChanged={fetchAll} />
+        <PlaylistManager playlists={playlists} music={music} onChanged={fetchAll} onPlayPlaylist={playPlaylist} />
       </div>
 
       <MusicForm open={formOpen} categories={categories} music={editingMusic} onClose={() => setFormOpen(false)} onSaved={fetchAll} />

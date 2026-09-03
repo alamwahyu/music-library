@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
-import { FastForward, Pause, Play, Repeat, Rewind, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FastForward, ListMusic, Pause, Play, Repeat, Rewind, Shuffle, SkipBack, SkipForward, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import { usePlayerStore } from "@/lib/player-store";
 import { PlayerController } from "@/player/PlayerController";
 import { loadYouTubeApi } from "@/player/YouTubePlayer";
@@ -18,8 +18,10 @@ export function MusicPlayer() {
   const lastMusicId = useRef<string | null>(null);
   const youtubeHostRef = useRef<HTMLDivElement | null>(null);
   const playAttemptRef = useRef<number | null>(null);
+  const [queueOpen, setQueueOpen] = useState(false);
   const {
     currentMusic,
+    queue,
     isPlaying,
     currentTime,
     duration,
@@ -30,6 +32,8 @@ export function MusicPlayer() {
     resumeMusic,
     nextMusic,
     previousMusic,
+    removeFromQueue,
+    clearQueue,
     setVolume,
     setProgress,
     toggleRepeat,
@@ -42,12 +46,24 @@ export function MusicPlayer() {
     return () => controllerRef.current?.destroy();
   }, []);
 
+  const handleEnded = useCallback(() => {
+    if (repeatMode === "one" && currentMusic) {
+      const start = currentMusic.playbackStart ?? 0;
+      controllerRef.current?.seek(start);
+      setProgress(start, duration);
+      void controllerRef.current?.play();
+      return;
+    }
+
+    nextMusic();
+  }, [currentMusic, duration, nextMusic, repeatMode, setProgress]);
+
   useEffect(() => {
     if (!currentMusic || !controllerRef.current) return;
     const loadKey = `${currentMusic.id}:${currentMusic.playbackStart ?? 0}:${currentMusic.playbackEnd ?? ""}:${currentMusic.playbackLabel ?? ""}`;
     if (lastMusicId.current === loadKey) return;
     lastMusicId.current = loadKey;
-    controllerRef.current.load(currentMusic, nextMusic, youtubeHostRef.current, pauseMusic).then(() => {
+    controllerRef.current.load(currentMusic, handleEnded, youtubeHostRef.current, pauseMusic).then(() => {
       controllerRef.current?.setVolume(volume);
       controllerRef.current?.seek(currentMusic.playbackStart ?? 0);
       if (isPlaying) {
@@ -65,7 +81,7 @@ export function MusicPlayer() {
         }
       }
     });
-  }, [currentMusic, isPlaying, nextMusic, pauseMusic, volume]);
+  }, [currentMusic, handleEnded, isPlaying, pauseMusic, volume]);
 
   useEffect(() => {
     if (!controllerRef.current || !currentMusic) return;
@@ -85,7 +101,7 @@ export function MusicPlayer() {
       const endSecond = currentMusic?.playbackEnd;
       if (isPlaying && endSecond && snapshot.currentTime >= endSecond) {
         if (repeatMode === "one") {
-          controllerRef.current?.seek(currentMusic?.playbackStart ?? 0);
+          handleEnded();
         } else {
           nextMusic();
         }
@@ -118,6 +134,38 @@ export function MusicPlayer() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-3 py-3 backdrop-blur lg:px-6">
+      {queueOpen ? (
+        <div className="absolute bottom-full right-3 mb-2 max-h-80 w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-lg border border-line bg-white shadow-soft">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold">Queue</p>
+              <p className="text-xs text-zinc-500">{queue.length} songs waiting</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <button title="Clear queue" onClick={clearQueue} className="rounded-md p-2 text-zinc-500 hover:text-wine">
+                <Trash2 size={16} />
+              </button>
+              <button title="Close queue" onClick={() => setQueueOpen(false)} className="rounded-md p-2 text-zinc-500">
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+          <div className="max-h-60 overflow-y-auto p-2">
+            {queue.length ? queue.map((song, index) => (
+              <div key={`${song.id}-${index}`} className="flex items-center justify-between gap-3 rounded-md px-2 py-2 hover:bg-paper">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{song.title}</p>
+                  <p className="truncate text-xs text-zinc-500">{song.artist || song.sourceType}</p>
+                </div>
+                <button title="Remove from queue" onClick={() => removeFromQueue(index)} className="shrink-0 rounded-md p-2 text-zinc-500 hover:text-wine">
+                  <X size={15} />
+                </button>
+              </div>
+            )) : <p className="px-2 py-8 text-center text-sm text-zinc-500">No songs in queue.</p>}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-3 lg:grid-cols-[280px_1fr_260px]">
         <div className="flex min-w-0 items-center gap-3">
           <div className={`shrink-0 overflow-hidden rounded-md bg-zinc-200 ${isYouTube ? "h-16 w-28" : "h-12 w-12"}`}>
@@ -148,8 +196,9 @@ export function MusicPlayer() {
             <button title="Next" onClick={nextMusic} className="rounded-md p-2 text-zinc-700">
               <SkipForward size={20} />
             </button>
-            <button title="Repeat" onClick={toggleRepeat} className={`rounded-md p-2 ${repeatMode !== "off" ? "text-wine" : "text-zinc-500"}`}>
+            <button title={`Repeat ${repeatMode}`} onClick={toggleRepeat} className={`relative rounded-md p-2 ${repeatMode !== "off" ? "text-wine" : "text-zinc-500"}`}>
               <Repeat size={18} />
+              {repeatMode === "one" ? <span className="absolute right-0 top-0 grid h-3.5 w-3.5 place-items-center rounded-full bg-wine text-[9px] font-bold text-white">1</span> : null}
             </button>
           </div>
           <div className="grid w-full grid-cols-[42px_1fr_42px] items-center gap-2 text-xs text-zinc-500">
@@ -179,6 +228,10 @@ export function MusicPlayer() {
           </button>
           <button title="Mute" onClick={() => setVolume(volume > 0 ? 0 : 0.8)} className="hidden rounded-md p-2 text-zinc-600 lg:block">
             {volume > 0 ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </button>
+          <button title="Queue" onClick={() => setQueueOpen((open) => !open)} className="relative rounded-md p-2 text-zinc-600">
+            <ListMusic size={18} />
+            {queue.length ? <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-wine px-1 text-[10px] font-bold text-white">{queue.length}</span> : null}
           </button>
           <input
             aria-label="Volume"

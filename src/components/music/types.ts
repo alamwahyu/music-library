@@ -44,6 +44,18 @@ export type Playlist = {
   _count?: { items: number };
 };
 
+export type PlaylistDetail = Playlist & {
+  items: PlaylistMusicItem[];
+};
+
+export type PlaylistMusicItem = {
+  id: string;
+  playlistId: string;
+  musicId: string;
+  position: number;
+  music: Music;
+};
+
 export type Summary = {
   total: number;
   mp3: number;
